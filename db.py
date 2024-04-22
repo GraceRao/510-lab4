@@ -1,24 +1,39 @@
-import os
 import psycopg2
 
 class Database:
-    def __init__(self):
-        self.con = psycopg2.connect(os.getenv('DATABASE_URL'))
-    
+    def __init__(self, db_url) -> None:
+        self.connection = psycopg2.connect(db_url)
+        self.cursor = self.connection.cursor()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.connection.close()
+
     def create_table(self):
-        q = """
-        CREATE TABLE IF NOT EXISTS quotes (
-        id SERIAL PRIMARY KEY,
-        content TEXT NOT NULL,
-        author TEXT NOT NULL,
-        tags TEXT  NOT NULL
+        create_query = """
+        CREATE TABLE IF NOT EXISTS books (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            rating INTEGER NOT NULL,
+            price NUMERIC(6,2) NOT NULL
         );
         """
-        self.cur.execute(q)
+        self.cursor.execute(create_query)
+        self.connection.commit()
 
-    def insert(self, quote):
-        q = """
-        INSERT INTO quotes (content, author, tags) VALUES (%s, %s, %s)
+    def truncate_table(self):
+        truncate_query = """
+        TRUNCATE TABLE books;
         """
-        self.cur.execute(q, (quote['content'],quote['author'] , quote['tags']))
-        self.con.commit()
+        self.cursor.execute(truncate_query)
+        self.connection.commit()
+    
+    def insert_book(self, book_details):
+        insert_query = """
+        INSERT INTO books (name, description, rating, price) VALUES (%s, %s, %s, %s);
+        """
+        self.cursor.execute(insert_query, (book_details['name'], book_details['description'], book_details['rating'], book_details['price']))
+        self.connection.commit()
